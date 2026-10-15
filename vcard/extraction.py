@@ -131,7 +131,7 @@ def build_lines(boxes: Sequence[OCRBox]) -> List[Line]:
     heights = sorted(b.height for b in boxes)
     median_h = heights[len(heights) // 2] or 10.0
     tol = median_h * 0.6
-    gap_tol = median_h * 4.0
+    gap_tol = median_h * 2.0
 
     groups: List[Dict] = []
     for b in ordered:
@@ -616,15 +616,31 @@ def extract_from_lines(lines: Sequence[Line], image_size: Tuple[int, int]) -> Di
 
 
 def _segment_by_name(lines: Sequence[Line]) -> List[List[Line]]:
-    """Split a single-column card into vertically stacked doctor blocks."""
+    """Split lines into doctor blocks.
+
+    Handles both vertically stacked doctors and side-by-side doctors
+    (where name lines sit at a similar vertical level but different x).
+    """
     name_lines = detect_name_lines(lines)
     if len(name_lines) < 2:
         return [list(lines)]
+    if len(name_lines) == 2:
+        n1, n2 = name_lines[0], name_lines[1]
+        ydiff = abs(n1.y_center - n2.y_center)
+        # If names are at very similar vertical level but horizontally apart,
+        # treat as side-by-side columns and assign each line to nearest name by x.
+        if ydiff < 30 and abs(n1.cx - n2.cx) > 200:
+            blocks = [[] for _ in name_lines]
+            for ln in lines:
+                d0 = abs(ln.cx - n1.cx) + 0.5 * abs(ln.y_center - n1.y_center)
+                d1 = abs(ln.cx - n2.cx) + 0.5 * abs(ln.y_center - n2.y_center)
+                idx = 0 if d0 <= d1 else 1
+                blocks[idx].append(ln)
+            return [b for b in blocks if b]
     name_lines = sorted(name_lines, key=lambda l: l.y_center)
     boundaries = [l.y_center for l in name_lines]
     blocks: List[List[Line]] = [[] for _ in boundaries]
     for ln in lines:
-        # Assign to the nearest name anchor that is above-or-equal; else the first.
         idx = 0
         for i, b in enumerate(boundaries):
             if ln.y_center >= b - 5:
