@@ -1,0 +1,40 @@
+# Python bytecode and package/build artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+
+# Local Python environments
+.venv/
+venv/
+env/
+
+# Local secrets and configuration
+.env
+.env.*
+!.env.example
+
+# User uploads, local database, and generated exports
+data/uploads/*
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/*.db-journal
+exports/*
+
+# Uploaded templates are user data; keep the bundled demonstration template.
+templates/*.xlsx
+!templates/sample_template.xlsx
+
+# OCR model cache (if configured inside the project)
+.paddlex/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
